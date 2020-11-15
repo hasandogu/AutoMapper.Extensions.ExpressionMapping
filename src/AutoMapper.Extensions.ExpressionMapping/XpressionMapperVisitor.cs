@@ -509,7 +509,7 @@ namespace AutoMapper.Extensions.ExpressionMapping
                         throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.expressionMapValueTypeMustMatchFormat, mappedPropertyType.Name, mappedPropertyDescription, sourceMemberType.Name, propertyMap.DestinationMember.Name));
                 }
 
-                propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.CustomMapExpression, propertyMap.SourceMembers.ToList()));
+                propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.CustomMapExpression, GetSourceMembers(propertyMap)));
             }
             else
             {
@@ -520,12 +520,27 @@ namespace AutoMapper.Extensions.ExpressionMapping
                 if (propertyMap.CustomMapExpression == null && !propertyMap.SourceMembers.Any())//If sourceFullName has a period then the SourceMember cannot be null.  The SourceMember is required to find the ProertyMap of its child object.
                     throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, propertyName));
 
-                propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.CustomMapExpression, propertyMap.SourceMembers.ToList()));
+                propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.CustomMapExpression, GetSourceMembers(propertyMap)));
                 var childFullName = sourceFullName.Substring(sourceFullName.IndexOf(period, StringComparison.OrdinalIgnoreCase) + 1);
 
                 FindDestinationFullName(sourceMemberInfo.GetMemberType(), propertyMap.CustomMapExpression == null
                     ? propertyMap.SourceMember.GetMemberType()
                     : propertyMap.CustomMapExpression.ReturnType, childFullName, propertyMapInfoList);
+            }
+
+
+            List<MemberInfo> GetSourceMembers(PropertyMap propertyMap)
+            {
+                if (propertyMap.CustomSource != null)
+                {
+                    return ExpressionHelpers.GetMemberPath
+                    (
+                        typeDestination,
+                        $"{propertyMap.CustomSource.GetMemberFullName()}.{propertyMap.DestinationName}"
+                    ).ToList();
+                }
+
+                return propertyMap.SourceMembers.ToList();
             }
         }
     }

@@ -187,6 +187,32 @@ namespace AutoMapper.Extensions.ExpressionMapping.Extensions
             return me.GetPropertyFullName();
         }
 
+
+        /// <summary>
+        /// For the given a Lambda Expression, returns the declaring type of member
+        /// </summary>
+        /// <param name="expr"></param>
+        /// <returns></returns>
+        public static Type GetMemberDeclaringType(this LambdaExpression expr)
+        {
+            if (expr.Body.NodeType == ExpressionType.Parameter)
+                return null;
+
+            MemberExpression me;
+            switch (expr.Body.NodeType)
+            {
+                case ExpressionType.Convert:
+                case ExpressionType.ConvertChecked:
+                    me = (expr.Body as UnaryExpression)?.Operand as MemberExpression;
+                    break;
+                default:
+                    me = expr.Body as MemberExpression;
+                    break;
+            }
+
+            return me.Member.DeclaringType;
+        }
+
         /// <summary>
         /// Returns the underlying type typeof(T) when the type implements IEnumerable.
         /// </summary>

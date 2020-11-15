@@ -4,6 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using AutoMapper.Extensions.ExpressionMapping;
+using AutoMapper.Extensions.ExpressionMapping.Extensions;
 using AutoMapper.Internal;
 using static System.Linq.Expressions.Expression;
 
@@ -203,7 +204,7 @@ namespace AutoMapper.Mappers
                 if (constantVisitor.IsConstant)
                     return node;
 
-                SetSorceSubTypes(propertyMap);
+                SetSourceSubTypes(propertyMap);
 
                 var replacedExpression = Visit(node.Expression);
                 if (replacedExpression == node.Expression)
@@ -214,7 +215,7 @@ namespace AutoMapper.Mappers
 
                 Func<Expression, MemberInfo, Expression> getExpression = MakeMemberAccess;
 
-                return propertyMap.SourceMembers
+                return GetSourceMembers(propertyMap)
                     .Aggregate(replacedExpression, getExpression);
             }
 
@@ -281,12 +282,26 @@ namespace AutoMapper.Mappers
                 return typeMap.PropertyMaps.FirstOrDefault(pm => pm.DestinationName == destinationProperty.Name);
             }
 
-            private void SetSorceSubTypes(PropertyMap propertyMap)
+            private void SetSourceSubTypes(PropertyMap propertyMap)
             {
                 if (propertyMap.SourceMember is PropertyInfo info)
                     _destSubTypes = info.PropertyType.GetTypeInfo().GenericTypeArguments.Concat(new[] { info.PropertyType }).ToList();
                 else if (propertyMap.SourceMember is FieldInfo fInfo)
                     _destSubTypes = fInfo.FieldType.GetTypeInfo().GenericTypeArguments;
+            }
+
+            private List<MemberInfo> GetSourceMembers(PropertyMap propertyMap)
+            {
+                if (propertyMap.CustomSource != null)
+                {
+                    return ExpressionHelpers.GetMemberPath
+                    (
+                        propertyMap.CustomSource.GetMemberDeclaringType(),
+                        $"{propertyMap.CustomSource.GetMemberFullName()}.{propertyMap.DestinationName}"
+                    ).ToList();
+                }
+
+                return propertyMap.SourceMembers.ToList();
             }
         }
     }

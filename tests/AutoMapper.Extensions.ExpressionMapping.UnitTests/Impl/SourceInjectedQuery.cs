@@ -34,12 +34,20 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests.Impl
             public string[] Strings { get; set; }
         }
 
+        public class SourceParent
+        {
+            public Source Source { get; set; }
+        }
+
         protected override MapperConfiguration Configuration { get; } = new MapperConfiguration(cfg =>
         {
             cfg.CreateMap<Destination, Source>()
                 .ForMember(s => s.SrcValue, opt => opt.MapFrom(d => d.DestValue))
                 .ReverseMap()
                 .ForMember(d => d.DestValue, opt => opt.MapFrom(s => s.SrcValue));
+
+            cfg.CreateMap<SourceParent, Destination>()
+                .IncludeMembers(p => p.Source);
         });
 
         [Fact]
@@ -73,6 +81,19 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests.Impl
 
             result.First(s => s.DestValue > 6).ShouldBeOfType<Destination>();
         }
+
+        [Fact]
+        public void Shoud_support_single_item_result_from_parent()
+        {
+            IQueryable<Destination> result = _source.AsQueryable()
+                .Select(source => new SourceParent
+                {
+                    Source = source
+                }).UseAsDataSource(Mapper).For<Destination>();
+
+            result.First(s => s.DestValue > 6).ShouldBeOfType<Destination>();
+        }
+
 
         [Fact]
         public void Shoud_support_IEnumerable_result()

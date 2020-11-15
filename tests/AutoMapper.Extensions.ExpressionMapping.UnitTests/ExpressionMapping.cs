@@ -112,11 +112,13 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests
         {
             cfg.AddExpressionMapping();
             cfg.CreateMap<GrandParent, GrandParentDTO>().ReverseMap();
-            cfg.CreateMap<Parent, ParentDTO>().ReverseMap();
+            cfg.CreateMap<Parent, ParentDTO>();
             cfg.CreateMap<Child, ChildDTO>()
                 .ForMember(d => d.ID_, opt => opt.MapFrom(s => s.ID))
                 .ReverseMap()
                 .ForMember(d => d.ID, opt => opt.MapFrom(s => s.ID_));
+            cfg.CreateMap<GrandParent, ParentDTO>()
+                .IncludeMembers(gp => gp.Parent);
             cfg.EnableNullPropagationForQueryMapping = true;
         });
 
@@ -157,6 +159,24 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests
             var expression2 = Mapper.Map<Expression<Func<IQueryable<GrandParent>, IQueryable<GrandParent>>>>(_predicateExpression2);
             When_Use_Outside_Class_Method_Call();
         }
+
+        [Fact]
+        public void GrandParent_Mapping_To_Sub_Property_With_IncludeMembers_Condition()
+        {
+            Expression<Func<ParentDTO, bool>> _predicateExpression = gp => gp.Children.Any(c => c.ID2 == 3);
+            var expression = Mapper.Map<Expression<Func<GrandParent, bool>>>(_predicateExpression);
+            var items = new[] { new GrandParent() { Parent = new Parent() { Children = new[] { new Child() { ID2 = 3 } }, Child = new Child() { ID2 = 3 } } } }.AsQueryable();
+            items.Where(expression).ShouldContain(items.First());
+            var items2 = items.UseAsDataSource(Mapper).For<ParentDTO>().Where(_predicateExpression);
+
+            items2.First(s => s.Child.ID2 == 3).Child.ID2.ShouldBe(3);
+            items2.First(s => s.Children.Any(c => c.ID2 == 3)).Child.ID2.ShouldBe(3);
+            items2.Count().ShouldBe(1);
+            items2.First().Child.ShouldBeOfType<ChildDTO>();
+            items2.First().Child.ID2.ShouldBe(3);
+            When_Use_Outside_Class_Method_Call();
+        }
+
 
         [Fact]
         public void When_Use_Outside_Class_Method_Call()

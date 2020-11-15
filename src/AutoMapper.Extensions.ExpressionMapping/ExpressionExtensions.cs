@@ -63,7 +63,7 @@ namespace AutoMapper
         public static MemberExpression MemberAccesses(string members, Expression obj) =>
             (MemberExpression)GetMemberPath(obj.Type, members).MemberAccesses(obj);
 
-        private static IEnumerable<MemberInfo> GetMemberPath(Type type, string fullMemberName)
+        public static IEnumerable<MemberInfo> GetMemberPath(Type type, string fullMemberName)
         {
             MemberInfo property = null;
             foreach (var memberName in fullMemberName.Split('.'))
